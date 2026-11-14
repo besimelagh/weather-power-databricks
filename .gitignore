@@ -1,0 +1,6 @@
+.databricks/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.venv/
+sample_data/

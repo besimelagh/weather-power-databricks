@@ -1,0 +1,110 @@
+resources:
+  jobs:
+    weather_power_price:
+      name: weather-power-price-${bundle.target}
+      description: >-
+        Daily, idempotent weather and Norwegian electricity-price pipeline.
+        The schedule is deliberately paused until the demo has been validated.
+      max_concurrent_runs: 1
+      parameters:
+        - name: run_date
+          default: ""
+        - name: ingestion_mode
+          default: api
+      schedule:
+        quartz_cron_expression: "0 30 14 * * ?"
+        timezone_id: Europe/Oslo
+        pause_status: PAUSED
+      environments:
+        - environment_key: default
+          spec:
+            # Pin a supported serverless environment instead of deprecated `client`.
+            environment_version: "2"
+      tasks:
+        - task_key: setup
+          environment_key: default
+          notebook_task:
+            notebook_path: ../src/notebooks/00_setup.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              zone: ${var.zone}
+              latitude: ${var.latitude}
+              longitude: ${var.longitude}
+              run_date: "{{job.parameters.run_date}}"
+              ingestion_mode: "{{job.parameters.ingestion_mode}}"
+              run_id: "{{job.run_id}}"
+
+        - task_key: ingest_weather
+          depends_on:
+            - task_key: setup
+          environment_key: default
+          timeout_seconds: 900
+          notebook_task:
+            notebook_path: ../src/notebooks/01_ingest_weather.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              zone: ${var.zone}
+              latitude: ${var.latitude}
+              longitude: ${var.longitude}
+              run_date: "{{job.parameters.run_date}}"
+              ingestion_mode: "{{job.parameters.ingestion_mode}}"
+              run_id: "{{job.run_id}}"
+
+        - task_key: ingest_prices
+          depends_on:
+            - task_key: setup
+          environment_key: default
+          timeout_seconds: 900
+          notebook_task:
+            notebook_path: ../src/notebooks/02_ingest_prices.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              zone: ${var.zone}
+              latitude: ${var.latitude}
+              longitude: ${var.longitude}
+              run_date: "{{job.parameters.run_date}}"
+              ingestion_mode: "{{job.parameters.ingestion_mode}}"
+              run_id: "{{job.run_id}}"
+
+        - task_key: silver_transform
+          depends_on:
+            - task_key: ingest_weather
+            - task_key: ingest_prices
+          environment_key: default
+          notebook_task:
+            notebook_path: ../src/notebooks/03_silver_transform.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              zone: ${var.zone}
+              run_date: "{{job.parameters.run_date}}"
+              run_id: "{{job.run_id}}"
+
+        - task_key: quality_gate
+          depends_on:
+            - task_key: silver_transform
+          environment_key: default
+          notebook_task:
+            notebook_path: ../src/notebooks/05_quality.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              zone: ${var.zone}
+              run_date: "{{job.parameters.run_date}}"
+              run_id: "{{job.run_id}}"
+
+        - task_key: gold_aggregate
+          depends_on:
+            - task_key: quality_gate
+          environment_key: default
+          notebook_task:
+            notebook_path: ../src/notebooks/04_gold.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              zone: ${var.zone}
+              run_date: "{{job.parameters.run_date}}"
+              run_id: "{{job.run_id}}"

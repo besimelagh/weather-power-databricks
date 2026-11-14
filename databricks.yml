@@ -1,0 +1,24 @@
+bundle:
+  name: weather-power-price
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog name. Free Edition normally exposes `workspace`.
+    default: workspace
+  zone:
+    description: Norwegian price zone used in the demo.
+    default: NO1
+  latitude:
+    description: Weather location latitude (Oslo city centre).
+    default: "59.9139"
+  longitude:
+    description: Weather location longitude (Oslo city centre).
+    default: "10.7522"
+
+targets:
+  dev:
+    mode: development
+    default: true
