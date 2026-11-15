@@ -135,13 +135,12 @@ price_rows = (
     )
     .select(
         F.lit(ZONE).alias("zone"),
-        # The source supplies an offset; Spark converts that instant to the UTC session zone.
-        F.to_timestamp("item.time_start", "yyyy-MM-dd'T'HH:mm:ssXXX").alias(
-            "hour_start_utc"
-        ),
-        F.to_timestamp("item.time_end", "yyyy-MM-dd'T'HH:mm:ssXXX").alias(
-            "hour_end_utc"
-        ),
+        # Let Spark parse the source's ISO-8601 offset directly.  The session is
+        # pinned to UTC in _shared.py, so e.g. ``00:00:00+01:00`` is stored as
+        # the corresponding UTC instant.  This is more portable across the
+        # Free Edition serverless runtimes than an explicit formatter pattern.
+        F.to_timestamp(F.trim(F.col("item.time_start"))).alias("hour_start_utc"),
+        F.to_timestamp(F.trim(F.col("item.time_end"))).alias("hour_end_utc"),
         F.lit(BUSINESS_DATE).cast("date").alias("business_date"),
         F.col("item.NOK_per_kWh").cast("double").alias("nok_per_kwh"),
         F.col("item.EUR_per_kWh").cast("double").alias("eur_per_kwh"),
@@ -151,6 +150,15 @@ price_rows = (
     .withColumn("processed_at", F.lit(utc_now()).cast("timestamp"))
     .withColumn("run_id", F.lit(RUN_ID))
 )
+
+# `explode` would otherwise turn an unparsable document into zero rows and let
+# the notebook appear to succeed.  Fail with an actionable source-contract
+# error instead; valid-but-bad records still reach quarantine below.
+if price_rows.limit(1).count() == 0:
+    raise SourceContractError(
+        "Price Bronze payload could not be parsed into hourly records. "
+        "Inspect api_payloads.payload_json and the source contract."
+    )
 
 price_is_invalid = (
     F.col("hour_start_utc").isNull()
@@ -186,6 +194,11 @@ quarantine_rows(
 price_valid = price_rows.where(~price_is_invalid).join(
     price_duplicate_keys, ["zone", "hour_start_utc"], "left_anti"
 )
+if price_valid.limit(1).count() == 0:
+    raise SourceContractError(
+        "No conforming price rows remain after validation; invalid records were "
+        "written to the quarantine table."
+    )
 merge_dataframe(price_valid, PRICE_HOURLY, ["zone", "hour_start_utc"])
 
 # COMMAND ----------
