@@ -67,6 +67,8 @@ Sett widgeten `run_date` til en dato som ligger minst omtrent en uke tilbake, fo
 
 Start med `ingestion_mode=api`. Databricks Free Edition kan begrense utgående internett for uverifiserte kontoer. Hvis API-kallene blokkeres, er det en kjent plattformbegrensning – ikke en feil som skal skjules i demoen.
 
+`02_ingest_prices.py` prøver først pris-API-et med avgrenset retry. Dersom kilden fortsatt er utilgjengelig, bruker den automatisk den opplastede pris-snapshoten og registrerer `ingestion_mode=snapshot_fallback` i Bronze. Denne fallbacken gjelder bare tilgjengelighetsfeil; 4xx, ugyldig JSON og andre kontraktsbrudd feiler fortsatt raskt og synlig. Værinnhentingen bruker fortsatt API direkte, eller snapshot når `ingestion_mode=snapshot` er valgt.
+
 Bruk da den dokumenterte Free Edition-tilpasningen:
 
 ```powershell
@@ -80,7 +82,7 @@ Last opp de to små JSON-filene til UC-volumet som opprettes av `00_setup.py`:
 /Volumes/workspace/weather_power_bronze/raw_snapshots/hvakosterstrommen/NO1/2025-11-10.json
 ```
 
-Kjør så pipeline med `ingestion_mode=snapshot`. Resten av flyten – Bronze-metadata, Delta-MERGE, Silver-transformasjon, DQ og Gold – er identisk. I produksjon ligger API-klienten inne i den godkjente datanettsonen; snapshot-sporet er kun en ærlig Free Edition-workaround.
+Kjør deretter pipeline på nytt. Velg `ingestion_mode=snapshot` dersom begge kildene må lese snapshots; ellers kan pris-snapshoten brukes som automatisk fallback mens værdata hentes fra API-et. Resten av flyten – Bronze-metadata, Delta-MERGE, Silver-transformasjon, DQ og Gold – er identisk. I produksjon ligger API-klienten inne i den godkjente datanettsonen; snapshot-sporet er kun en ærlig Free Edition-workaround.
 
 ### 4. Kjør og vis resultatet
 
