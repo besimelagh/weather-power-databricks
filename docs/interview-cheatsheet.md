@@ -24,7 +24,7 @@
 
 ### Hvordan orkestrerer og overvåker du dette?
 
-«En Lakeflow Job med to parallelle ingest-tasker, avhengigheter mot Silver, DQ-gate og Gold. Jeg setter max concurrent runs til én, tidsgrense, retries med backoff bare for 429/5xx og varsling for feil og treghet. I tillegg har jeg DQ-resultater som egne Delta-data, slik at datafreshness og dekningsgrad kan overvåkes over tid.»
+«Demoen har en Lakeflow Job med to parallelle ingest-tasker, avhengigheter mot Silver, DQ-gate og Gold, maks én aktiv run og tidsgrenser. Retry med backoff ligger bevisst i HTTP-klienten og gjelder bare transient 408/429/5xx. DQ-resultater lagres som egne Delta-data. I produksjon ville jeg konfigurert varsling for jobbfail, varighet/SLA og kritiske DQ-feil, med mottakere og terskler som virksomhetskonfigurasjon.»
 
 ### Hva er Unity Catalog-historien?
 

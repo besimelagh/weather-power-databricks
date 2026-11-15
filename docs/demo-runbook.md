@@ -40,7 +40,7 @@ Kjør/vis `06_visualize.py`.
 
 Åpne job-definisjonen eller pek på `resources/weather_power_job.yml`.
 
-«I produksjon kjører ingestene parallelt, så Silver, en kvalitetssperre, og Gold. Jeg har maks én aktiv run, bounded retry kun på transient API-feil, varsler separat for jobbfail og datakvalitet, og en kort lookback for kildekorrigeringer.»
+«I demoen modellerer jobben parallelle ingester, så Silver, en kvalitetssperre og Gold. Den har maks én aktiv run, tidsgrenser og bounded retry kun på transient API-feil. I produksjon ville jeg i tillegg konfigurert varsling separat for jobbfail, SLA-brudd og kritiske DQ-feil, samt en kort lookback for kildekorrigeringer.»
 
 ## Ikke gjør i demoen
 
