@@ -16,8 +16,26 @@ API_URL = (
 )
 
 try:
+    effective_ingestion_mode = INGESTION_MODE
     if INGESTION_MODE == "api":
-        payload, request_url, http_status = fetch_json(API_URL)
+        try:
+            payload, request_url, http_status = fetch_json(API_URL)
+        except SourceError as api_error:
+            # Free Edition can block outbound DNS/HTTPS. A date-partitioned snapshot
+            # keeps the demo reproducible without masking API contract errors (4xx/
+            # invalid JSON), which still fail fast in fetch_json.
+            try:
+                payload, request_url, http_status = snapshot_json(SOURCE)
+                effective_ingestion_mode = "snapshot_fallback"
+                print(
+                    "Price API unavailable after bounded retries; using the uploaded "
+                    f"snapshot instead. Reason: {api_error}"
+                )
+            except SourceError as snapshot_error:
+                raise SourceError(
+                    "Price API is unavailable and the snapshot fallback could not be read. "
+                    f"API error: {api_error}; snapshot error: {snapshot_error}"
+                ) from snapshot_error
     else:
         payload, request_url, http_status = snapshot_json(SOURCE)
 
@@ -43,7 +61,7 @@ try:
                 len(payload),
                 utc_now(),
                 RUN_ID,
-                INGESTION_MODE,
+                effective_ingestion_mode,
             )
         ],
         """
