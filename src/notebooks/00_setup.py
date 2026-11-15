@@ -34,10 +34,7 @@ spark.sql(
         record_count INT NOT NULL,
         ingested_at TIMESTAMP NOT NULL,
         run_id STRING NOT NULL,
-        ingestion_mode STRING NOT NULL,
-        CONSTRAINT raw_source CHECK (source IN ('open_meteo', 'hvakosterstrommen')),
-        CONSTRAINT raw_http_status CHECK (http_status BETWEEN 200 AND 299),
-        CONSTRAINT raw_record_count CHECK (record_count >= 0)
+        ingestion_mode STRING NOT NULL
     ) USING DELTA
     PARTITIONED BY (source, business_date)
     """
@@ -54,10 +51,7 @@ spark.sql(
         precipitation_mm DOUBLE,
         source_payload_sha256 STRING NOT NULL,
         processed_at TIMESTAMP NOT NULL,
-        run_id STRING NOT NULL,
-        CONSTRAINT weather_temperature_range CHECK (temperature_c IS NULL OR temperature_c BETWEEN -70 AND 60),
-        CONSTRAINT weather_wind_range CHECK (wind_speed_mps IS NULL OR wind_speed_mps BETWEEN 0 AND 120),
-        CONSTRAINT weather_precipitation_range CHECK (precipitation_mm IS NULL OR precipitation_mm BETWEEN 0 AND 500)
+        run_id STRING NOT NULL
     ) USING DELTA
     """
 )
@@ -74,8 +68,7 @@ spark.sql(
         exchange_rate DOUBLE,
         source_payload_sha256 STRING NOT NULL,
         processed_at TIMESTAMP NOT NULL,
-        run_id STRING NOT NULL,
-        CONSTRAINT price_nok_range CHECK (nok_per_kwh BETWEEN -10 AND 50)
+        run_id STRING NOT NULL
     ) USING DELTA
     """
 )
@@ -98,8 +91,7 @@ spark.sql(
         price_payload_sha256 STRING NOT NULL,
         weather_payload_sha256 STRING,
         processed_at TIMESTAMP NOT NULL,
-        run_id STRING NOT NULL,
-        CONSTRAINT fact_join_status CHECK (join_status IN ('matched', 'missing_weather'))
+        run_id STRING NOT NULL
     ) USING DELTA
     """
 )
@@ -146,9 +138,7 @@ spark.sql(
         observed_value DOUBLE NOT NULL,
         expected_rule STRING NOT NULL,
         details STRING,
-        checked_at TIMESTAMP NOT NULL,
-        CONSTRAINT dq_status CHECK (status IN ('PASS', 'FAIL')),
-        CONSTRAINT dq_severity CHECK (severity IN ('ERROR', 'WARN'))
+        checked_at TIMESTAMP NOT NULL
     ) USING DELTA
     """
 )

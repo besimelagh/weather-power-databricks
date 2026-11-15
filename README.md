@@ -129,6 +129,8 @@ Spark-sessionen settes til UTC. Strømprisens offset-bevarte tidsstempel og vær
 
 For denne lille demoen kontrollerer timeregel cardinalitet. I produksjon ville jeg i tillegg generert en DST-korrekt forventet time-spine i `Europe/Oslo` og anti-joinet den mot kilde- og faktatabellene for å peke ut eksakt manglende tidspunkt – slik oppdager man også én manglende time som ellers kamufleres av en duplikat.
 
+Free Edition-serverless avviser `CHECK`-constraints i denne workspace-konfigurasjonen. I stedet for å skjule det har denne demoen eksplisitte, testbare DQ-regler og en kvalitetssperre før Gold. I en produksjonsworkspace der policyen tillater det kan samme sentrale regler også håndheves som Delta-constraints.
+
 ## Produksjonstenkning utover demoen
 
 `resources/weather_power_job.yml` viser en daglig Lakeflow Job med to parallelle ingest-oppgaver → Silver → DQ-gate → Gold. Den har `max_concurrent_runs=1`, task-timeout og pauset schedule. HTTP-klienten har avgrenset retry med backoff bare for transient 408/429/5xx; jeg har med hensikt ikke brukt generisk task-retry i demoen, siden den ikke kan skille en 4xx-/kontraktfeil fra en transient feil. I produksjon ville neste steg være varsling for jobbfail/SLA-brudd, en parameterisert lookback på siste 3–7 dager og en feilklassifiserende retry-policy; mottakergruppe og terskler er virksomhetsspesifikke og derfor ikke hardkodet her.
